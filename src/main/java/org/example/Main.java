@@ -2,7 +2,6 @@ package org.example;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -25,7 +24,6 @@ public class Main {
 
             Map<Long, ArrayList<Pair>> map = new HashMap<>();
 
-            // Заполняем карту значений
             for (int rowIndex = 0; rowIndex < values.length; rowIndex++) {
                 for (int colIndex = 0; colIndex < values[rowIndex].length; colIndex++) {
                     long value = values[rowIndex][colIndex];
@@ -37,7 +35,6 @@ public class Main {
 
             DisjointSet disjointSet = new DisjointSet(values.length);
 
-            // Обрабатываем значения и объединяем группы
             for (ArrayList<Pair> list : map.values()) {
                 Collections.sort(list);
 
@@ -68,8 +65,7 @@ public class Main {
             int moreOneCnt = 0;
             int num = 1;
 
-            // Выводим результат в BufferedWriter
-            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out))) {
+            try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("output.txt"))) {
                 for (ArrayList<Integer> list : result) {
                     if (list.size() > 1) {
                         moreOneCnt++;
@@ -84,8 +80,8 @@ public class Main {
                     num++;
                 }
 
-                writer.write("\nГрупп с более чем одним элементом: " + moreOneCnt + "\n");
-                writer.write("Время на выполнение: " + ((System.currentTimeMillis() - time) / 1000.0) + " секунд\n");
+                System.out.println("Групп с более чем одним элементом: " + moreOneCnt);
+                System.out.println("Время на выполнение: " + ((System.currentTimeMillis() - time) / 1000.0) + " секунд\n");
             }
 
         } catch (IOException e) {
