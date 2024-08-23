@@ -28,8 +28,6 @@ public class DisjointSet {
 
             if (rankX < rankY) {
                 parent[rootX] = rootY;
-            } else if (rankX > rankY) {
-                parent[rootY] = rootX;
             } else {
                 parent[rootY] = rootX;
             }

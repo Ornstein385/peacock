@@ -12,72 +12,78 @@ public class Main {
         try {
             long time = System.currentTimeMillis();
 
-            long[][] values = Files.lines(Paths.get(args[0]))
+            double[][] values = Files.lines(Paths.get(args[0]))
+                    .filter(line -> !line.isBlank())
                     .map(line -> line.split(";"))
-                    .filter(parts -> Arrays.stream(parts)
-                            .allMatch(part -> part.matches("\"\\d{0,11}\""))) // Проверка корректности строки
                     .map(parts -> Arrays.stream(parts)
-                            .map(part -> part.replace("\"", ""))
-                            .mapToLong(part -> part.isEmpty() ? 0L : Long.parseLong(part))
+                            .mapToDouble(Main::mapPartToDouble)
                             .toArray())
-                    .toArray(long[][]::new);
-
-            Map<Long, ArrayList<Pair>> map = new HashMap<>();
-
-            for (int rowIndex = 0; rowIndex < values.length; rowIndex++) {
-                for (int colIndex = 0; colIndex < values[rowIndex].length; colIndex++) {
-                    long value = values[rowIndex][colIndex];
-                    if (value != 0) {
-                        map.computeIfAbsent(value, _ -> new ArrayList<>()).add(new Pair(colIndex, rowIndex));
-                    }
-                }
-            }
+                    .sorted((a, b) -> Integer.compare(b.length, a.length))
+                    .toArray(double[][]::new);
 
             DisjointSet disjointSet = new DisjointSet(values.length);
 
-            for (ArrayList<Pair> list : map.values()) {
-                Collections.sort(list);
-
-                Pair previous = null;
-                for (Pair pair : list) {
-                    if (previous == null || previous.x != pair.x) {
-                        previous = pair;
-                    } else {
-                        disjointSet.union(previous.y, pair.y);
+            Map<Double, Integer> column = new HashMap<>();
+            for (int j = 0; j < values[0].length; j++) {
+                column.clear();
+                int i = 0;
+                while (i < values.length && j < values[i].length) {
+                    if (Double.isNaN(values[i][j])) {
+                        i++;
+                        continue;
                     }
+                    Integer x = column.get(values[i][j]);
+                    if (x != null) {
+                        disjointSet.union(x, i);
+                    } else {
+                        column.put(values[i][j], i);
+                    }
+                    i++;
                 }
             }
 
-            ArrayList<Integer>[] groups = new ArrayList[values.length];
+            Map<Integer, Integer> setSizes = new HashMap<>();
             for (int i = 0; i < values.length; i++) {
                 int root = disjointSet.find(i);
-                if (groups[root] == null) {
-                    groups[root] = new ArrayList<>();
-                }
-                groups[root].add(i);
+                setSizes.put(root, setSizes.getOrDefault(root, 0) + 1);
             }
 
-            List<ArrayList<Integer>> result = Arrays.stream(groups)
-                    .filter(Objects::nonNull)
-                    .sorted((a, b) -> Integer.compare(b.size(), a.size()))
-                    .toList();
+            Map<Integer, Integer> pointers = new HashMap<>();
+            HashMap<Integer, int[]> indexes = new HashMap<>();
+            for (Map.Entry<Integer, Integer> entry : setSizes.entrySet()) {
+                indexes.put(entry.getKey(), new int[entry.getValue()]);
+                pointers.put(entry.getKey(), 0);
+            }
+            setSizes.clear();
+
+            for (int i = 0; i < values.length; i++) {
+                int root = disjointSet.find(i);
+                indexes.get(root)[pointers.get(root)] = i;
+                pointers.put(root, pointers.get(root) + 1);
+            }
+            pointers.clear();
 
             int moreOneCnt = 0;
-            int num = 1;
+            int inc = 1;
+
+            ArrayList<int[]> result = new ArrayList<>(indexes.values());
+            result.sort((a, b) -> Integer.compare(b.length, a.length));
 
             try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("output.txt"))) {
-                for (ArrayList<Integer> list : result) {
-                    if (list.size() > 1) {
+                for (int[] entry : result) {
+                    if (entry.length > 1) {
                         moreOneCnt++;
                     }
-                    writer.write("Группа " + num + "\n");
-                    for (Integer i : list) {
-                        String formattedLine = Arrays.stream(values[i])
-                                .mapToObj(value -> "\"" + (value == 0 ? "" : value) + "\"")
+
+                    writer.write("Группа " + inc + "\n");
+                    for (int j : entry) {
+                        double[] array = values[j];
+                        String formattedLine = Arrays.stream(array)
+                                .mapToObj(value -> Double.isNaN(value) ? "\"\"" : "\"" + value + "\"")
                                 .collect(Collectors.joining(";"));
                         writer.write(formattedLine + "\n");
                     }
-                    num++;
+                    inc++;
                 }
 
                 System.out.println("Групп с более чем одним элементом: " + moreOneCnt);
@@ -86,6 +92,17 @@ public class Main {
 
         } catch (IOException e) {
             System.err.println("Ошибка чтения файла: " + e.getMessage());
+        }
+    }
+
+    private static double mapPartToDouble(String part) {
+        if (part.isBlank() || part.equals("\"\"")) {
+            return Double.NaN;
+        }
+        try {
+            return Double.parseDouble(part.substring(1, part.length() - 1));
+        } catch (NumberFormatException e) {
+            return Double.NaN;
         }
     }
 }
