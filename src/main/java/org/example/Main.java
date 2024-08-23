@@ -4,7 +4,10 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -13,11 +16,12 @@ public class Main {
             long time = System.currentTimeMillis();
 
             double[][] values = Files.lines(Paths.get(args[0]))
-                    .filter(line -> !line.isBlank())
                     .map(line -> line.split(";"))
+                    .filter(parts -> Arrays.stream(parts).allMatch(Main::isCorrectPart))
                     .map(parts -> Arrays.stream(parts)
                             .mapToDouble(Main::mapPartToDouble)
                             .toArray())
+                    .filter(a -> a.length > 0)
                     .sorted((a, b) -> Integer.compare(b.length, a.length))
                     .toArray(double[][]::new);
 
@@ -104,5 +108,19 @@ public class Main {
         } catch (NumberFormatException e) {
             return Double.NaN;
         }
+    }
+
+    private static boolean isCorrectPart(String part) {
+        return part.isBlank() || part.equals("\"\"") || (part.startsWith("\"")
+                && part.endsWith("\"") && tryParseDouble(part.substring(1, part.length() - 1)));
+    }
+
+    private static boolean tryParseDouble(String part) {
+        try {
+            Double.parseDouble(part);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
     }
 }
