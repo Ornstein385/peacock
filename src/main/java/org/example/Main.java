@@ -73,11 +73,16 @@ public class Main {
             ArrayList<int[]> result = new ArrayList<>(indexes.values());
             result.sort((a, b) -> Integer.compare(b.length, a.length));
 
+            for (int[] entry : result) {
+                if (entry.length > 1) {
+                    moreOneCnt++;
+                }
+            }
+
             try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("output.txt"))) {
+                writer.write("Групп с более чем одним элементом: " + moreOneCnt + "\n");
+
                 for (int[] entry : result) {
-                    if (entry.length > 1) {
-                        moreOneCnt++;
-                    }
 
                     writer.write("Группа " + inc + "\n");
                     for (int j : entry) {
